@@ -1,7 +1,9 @@
 use anyhow::{Result, bail};
 use clap::Parser;
-use log::error;
+use log::{debug, error};
 use std::path::PathBuf;
+
+mod hash;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -20,13 +22,15 @@ fn main() {
         error!("{err}");
         std::process::exit(1);
     }
-
-    println!("Hello, {}", args.movie_file.display());
 }
 
 fn run(args: &Args) -> Result<()> {
     validate(&args)?;
-    println!("Hello, {}", args.movie_file.display());
+    debug!("Validation passed");
+
+    let h = hash::calculate(&args.movie_file)?;
+    debug!("movie file hash = {}", &h);
+
     Ok(())
 }
 
