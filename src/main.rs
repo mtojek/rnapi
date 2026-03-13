@@ -28,8 +28,11 @@ fn run(args: &Args) -> Result<()> {
     validate(&args)?;
     debug!("Validation passed");
 
-    let h = hash::calculate(&args.movie_file)?;
+    let h = hash::compute_md5(&args.movie_file)?;
     debug!("movie file hash = {}", &h);
+
+    let t = hash::compute_token(&h);
+    debug!("token = {}", &t);
 
     Ok(())
 }
