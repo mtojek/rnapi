@@ -39,9 +39,11 @@ pub fn decompress(data: Vec<u8>) -> Result<Vec<u8>> {
     let mut archive = ArchiveReader::new(reader, PASSWORD.into())?;
 
     let mut decompressed = vec![];
-    archive.for_each_entries(|entry, reader| {
-        reader.read_to_end(&mut decompressed).unwrap();
-        Ok(true)
-    });
-    Ok(decompressed);
+    archive
+        .for_each_entries(|_entry, reader| {
+            reader.read_to_end(&mut decompressed).unwrap();
+            Ok(true)
+        })
+        .unwrap();
+    Ok(decompressed)
 }

@@ -36,8 +36,10 @@ fn run(args: &Args) -> Result<()> {
     debug!("token = {}", &t);
 
     let f = subs::download(&h, &t)?;
-    debug!("subtitle file size = {}", f.len());
-    debug!("{}", String::from_utf8_lossy(&f));
+    debug!("subtitle archive size = {}", f.len());
+
+    let s = subs::decompress(f)?;
+    debug!("{}", String::from_utf8_lossy(&s));
 
     Ok(())
 }
