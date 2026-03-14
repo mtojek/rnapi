@@ -21,7 +21,7 @@ pub fn compute_token(z: &str) -> String {
     let mul: [u32; 5] = [2, 2, 5, 4, 3];
     let idx: [usize; 5] = [0xe, 0x3, 0x6, 0x8, 0x2];
 
-    let mut out = String::new();
+    let mut out = String::with_capacity(idx.len());
     for i in 0..idx.len() {
         let a = add[i];
         let m = mul[i];
@@ -48,6 +48,5 @@ mod tests {
     fn test_known_token() {
         assert_eq!(compute_token("e17ef434e816db49e58b062b45e3e258"), "8c081");
         assert_eq!(compute_token("4b3d32b7700b3588531dd81db058eba9"), "00640");
-
     }
 }

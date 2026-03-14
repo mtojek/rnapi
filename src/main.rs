@@ -4,6 +4,7 @@ use log::{debug, error};
 use std::path::PathBuf;
 
 mod hash;
+mod subs;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -33,6 +34,10 @@ fn run(args: &Args) -> Result<()> {
 
     let t = hash::compute_token(&h);
     debug!("token = {}", &t);
+
+    let f = subs::download(&h, &t)?;
+    debug!("subtitle file size = {}", f.len());
+    debug!("{}", String::from_utf8_lossy(&f));
 
     Ok(())
 }
