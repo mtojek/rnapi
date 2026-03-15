@@ -1,6 +1,6 @@
 use anyhow::{Result, bail};
 use clap::Parser;
-use log::{debug, error};
+use log::{debug, error, info};
 use std::path::PathBuf;
 
 mod hash;
@@ -27,7 +27,7 @@ fn main() {
 
 fn run(args: &Args) -> Result<()> {
     validate(&args)?;
-    debug!("Validation passed");
+    info!("Validation passed");
 
     let h = hash::compute_md5(&args.movie_file)?;
     debug!("movie file hash = {}", &h);
@@ -35,11 +35,12 @@ fn run(args: &Args) -> Result<()> {
     let t = hash::compute_token(&h);
     debug!("token = {}", &t);
 
+    info!("Download subtitles");
     let f = subs::download(&h, &t)?;
     debug!("subtitle archive size = {}", f.len());
 
     let s = subs::decompress(f)?;
-    debug!("Preview original:");
+    info!("Preview original:");
     subs::preview(&s);
 
     Ok(())
