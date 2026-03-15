@@ -2,7 +2,7 @@ use std::io::{BufReader, Cursor};
 
 use anyhow::{Result, bail};
 use log::debug;
-use sevenz_rust2::{ArchiveReader, Password};
+use sevenz_rust2::ArchiveReader;
 use ureq::Error;
 
 pub fn download(checksum: &str, token: &str) -> Result<Vec<u8>> {
@@ -46,4 +46,14 @@ pub fn decompress(data: Vec<u8>) -> Result<Vec<u8>> {
         })
         .unwrap();
     Ok(decompressed)
+}
+
+const PREVIEW_LINES: usize = 10;
+
+pub fn preview(data: &[u8]) {
+    data.splitn(PREVIEW_LINES + 1, |b| *b == b'\n')
+        .take(PREVIEW_LINES)
+        .for_each(|line| {
+            debug!("{}", String::from_utf8_lossy(&line));
+        });
 }

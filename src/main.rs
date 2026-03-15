@@ -39,7 +39,8 @@ fn run(args: &Args) -> Result<()> {
     debug!("subtitle archive size = {}", f.len());
 
     let s = subs::decompress(f)?;
-    debug!("{}", String::from_utf8_lossy(&s));
+    debug!("Preview original:");
+    subs::preview(&s);
 
     Ok(())
 }
