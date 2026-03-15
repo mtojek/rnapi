@@ -3,6 +3,7 @@ use clap::Parser;
 use log::{debug, error, info};
 use std::path::PathBuf;
 
+mod encoding;
 mod hash;
 mod subs;
 
@@ -40,8 +41,15 @@ fn run(args: &Args) -> Result<()> {
     debug!("subtitle archive size = {}", f.len());
 
     let s = subs::decompress(f)?;
-    info!("Preview original:");
+    debug!("Preview original:");
     subs::preview(&s);
+
+    let encoded = encoding::to_utf8(&s);
+    debug!("Preview UTF-8 encoded:");
+    subs::preview(&encoded);
+
+    // TODO Convert to SRT
+    // TODO Write to file
 
     Ok(())
 }

@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.102"
 clap = { version = "4.5.60", features = ["derive"] }
+encoding_rs = "0.8.35"
 env_logger = "0.11.9"
 log = "0.4.29"
 md5hash = "0.1.1"
