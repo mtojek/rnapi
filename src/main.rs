@@ -1,6 +1,7 @@
 use anyhow::{Result, bail};
 use clap::Parser;
-use log::{debug, error, info};
+use env_logger::Env;
+use log::{debug, error};
 use std::path::PathBuf;
 
 mod encoding;
@@ -17,7 +18,7 @@ struct Args {
 }
 
 fn main() {
-    env_logger::init(); // RUST_LOG=debug
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
     let args = Args::parse();
     if let Err(err) = run(&args) {
@@ -28,7 +29,6 @@ fn main() {
 
 fn run(args: &Args) -> Result<()> {
     validate(&args)?;
-    info!("Validation passed");
 
     let h = hash::compute_md5(&args.movie_file)?;
     debug!("movie file hash = {}", &h);
@@ -36,20 +36,20 @@ fn run(args: &Args) -> Result<()> {
     let t = hash::compute_token(&h);
     debug!("token = {}", &t);
 
-    info!("Download subtitles");
     let f = subs::download(&h, &t)?;
     debug!("subtitle archive size = {}", f.len());
 
     let s = subs::decompress(f)?;
-    debug!("Preview original:");
+    debug!("Original:");
     subs::preview(&s);
 
     let encoded = encoding::to_utf8(&s);
-    debug!("Preview UTF-8 encoded:");
+    debug!("UTF-8 encoded:");
     subs::preview(&encoded);
 
     let converted = subs::to_srt(&encoded, args.fps);
-    debug!("Preview converted:");
+
+    debug!("SubRip format:");
     subs::preview(&converted);
 
     // TODO Write to file
@@ -65,5 +65,7 @@ fn validate(args: &Args) -> Result<()> {
     if !args.movie_file.exists() {
         bail!("movie file does not exist");
     }
+
+    debug!("Validation passed");
     Ok(())
 }

@@ -1,7 +1,7 @@
 use std::io::{BufReader, Cursor};
 
 use anyhow::{Result, bail};
-use log::debug;
+use log::{debug, info};
 use sevenz_rust2::ArchiveReader;
 use subparse::{SrtFile, SubtitleFileInterface, SubtitleFormat, parse_str};
 use ureq::Error;
@@ -10,7 +10,7 @@ pub fn download(checksum: &str, token: &str) -> Result<Vec<u8>> {
     let url = format!(
         "https://napiprojekt.pl/unit_napisy/dl.php?l=PL&f={checksum}&t={token}&v=other&kolejka=false&nick=&pass=&napios=posix"
     );
-    debug!("URL: {}", url);
+    info!("Download subtitles file: {}", url);
 
     match ureq::get(url).call() {
         Ok(mut response) => {
@@ -61,9 +61,10 @@ pub fn preview(data: &[u8]) {
 
 pub fn to_srt(content: &[u8], fps: f64) -> Vec<u8> {
     let format = detect_subtitle_format(content).expect("unrecognized subtitle format");
-    debug!("Subtitle extension detected: {:?}", format);
+    info!("Subtitle extension detected: {:?}", format);
 
     if format == SubtitleFormat::SubRip {
+        info!("Already a SubRip file");
         return content.to_vec();
     }
 
@@ -74,13 +75,16 @@ pub fn to_srt(content: &[u8], fps: f64) -> Vec<u8> {
         .get_subtitle_entries()
         .expect("can't read subtitle entries");
 
-    debug!("Write SubRip file");
+    debug!("Serialize SubRip file");
     let lines = entries
         .into_iter()
         .map(|entry| (entry.timespan, entry.line.unwrap_or_default()))
         .collect();
     let subrip = SrtFile::create(lines).expect("can't build SubRip file");
-    subrip.to_data().expect("can't serialize SubRip file")
+    let serialized = subrip.to_data().expect("can't serialize SubRip file");
+
+    info!("Converted to SubRip");
+    serialized
 }
 
 fn detect_subtitle_format(content: &[u8]) -> Option<SubtitleFormat> {
