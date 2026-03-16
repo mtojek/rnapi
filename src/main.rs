@@ -11,7 +11,7 @@ mod subs;
 #[command(version, about, long_about = None)]
 struct Args {
     #[arg(short, long, default_value_t = 23.976)]
-    fps: f32,
+    fps: f64,
 
     movie_file: PathBuf,
 }
@@ -47,6 +47,10 @@ fn run(args: &Args) -> Result<()> {
     let encoded = encoding::to_utf8(&s);
     debug!("Preview UTF-8 encoded:");
     subs::preview(&encoded);
+
+    let converted = subs::to_srt(&encoded, args.fps);
+    debug!("Preview converted:");
+    subs::preview(&converted);
 
     // TODO Convert to SRT
     // TODO Write to file

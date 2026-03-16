@@ -1,8 +1,12 @@
-use std::io::{BufReader, Cursor};
+use std::{
+    ffi::OsStr,
+    io::{BufReader, Cursor},
+};
 
 use anyhow::{Result, bail};
 use log::debug;
 use sevenz_rust2::ArchiveReader;
+use subparse::{SrtFile, SubtitleFormat, get_subtitle_format, parse_str};
 use ureq::Error;
 
 pub fn download(checksum: &str, token: &str) -> Result<Vec<u8>> {
@@ -56,4 +60,25 @@ pub fn preview(data: &[u8]) {
         .for_each(|line| {
             debug!("{}", String::from_utf8_lossy(&line));
         });
+}
+
+pub fn to_srt(content: &[u8], fps: f64) -> Vec<u8> {
+    let format = get_subtitle_format(Some(OsStr::new("sub")), content) // FIXME sub
+        .expect("unrecognized subtitle format");
+    debug!("Subtitle extension detected: {:?}", format);
+
+    if format == SubtitleFormat::SubRip {
+        return content.to_vec();
+    }
+
+    debug!("Parse subtitles");
+    let subtitle_file =
+        parse_str(format, str::from_utf8(content).unwrap(), fps).expect("can't parse subtitles");
+    let entries = subtitle_file
+        .get_subtitle_entries()
+        .expect("can't read subtitle entries");
+
+    debug!("Write SubRip file");
+    let mut subrip = SrtFile::new();
+    // TODO
 }
