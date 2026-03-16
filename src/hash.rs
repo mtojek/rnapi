@@ -50,16 +50,19 @@ pub fn compute_token(z: &Md5Hex) -> Result<String> {
         let m = mul[i];
         let i = idx[i];
 
-        let zi = z
-            .as_str()
+        let z_str = z.as_str();
+        let zi = z_str
             .get(i..i + 1)
             .and_then(|s| s.chars().next())
             .context("hash has unexpected length or encoding")?;
         let t = a + zi.to_digit(16).context("hash contains non-hex characters")? as usize;
 
-        let hex = z
-            .as_str()
-            .get(t..t + 2)
+        if t >= z_str.len() {
+            bail!("hash has unexpected length for token derivation");
+        }
+        let end = (t + 2).min(z_str.len());
+        let hex = z_str
+            .get(t..end)
             .context("hash has unexpected length for token derivation")?;
         let v = u32::from_str_radix(hex, 16).context("hash contains non-hex characters")?;
         let digit = (v * m) & 0xf;
