@@ -35,6 +35,7 @@ fn main() {
 fn run(args: &Args) -> Result<()> {
     validate(&args)?;
 
+    log::info!("Compute MD5 for file: {}", args.movie_file.display());
     let h = hash::compute_md5(&args.movie_file)?;
     debug!("movie file hash = {}", h.as_str());
 
@@ -66,7 +67,6 @@ fn validate(args: &Args) -> Result<()> {
         bail!("movie file does not exist");
     }
 
-    debug!("Validation passed");
     Ok(())
 }
 
