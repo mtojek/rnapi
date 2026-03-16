@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result, bail};
 use log::debug;
 use md5hash::MD5Hasher;
 use std::{fs::File, io::Read, path::PathBuf};
@@ -16,7 +16,11 @@ pub fn compute_md5(movie_file: &PathBuf) -> Result<String> {
     Ok(format!("{:x}", h.finish()))
 }
 
-pub fn compute_token(z: &str) -> String {
+pub fn compute_token(z: &str) -> Result<String> {
+    if z.len() < 32 {
+        bail!("hash too short for token generation");
+    }
+
     let add: [usize; 5] = [0, 0xd, 0x10, 0xb, 0x5];
     let mul: [u32; 5] = [2, 2, 5, 4, 3];
     let idx: [usize; 5] = [0xe, 0x3, 0x6, 0x8, 0x2];
@@ -27,15 +31,22 @@ pub fn compute_token(z: &str) -> String {
         let m = mul[i];
         let i = idx[i];
 
-        let zi = z[i..i + 1].chars().next().unwrap();
-        let t = a + zi.to_digit(16).unwrap() as usize;
+        let zi = z
+            .get(i..i + 1)
+            .and_then(|s| s.chars().next())
+            .context("hash has unexpected length or encoding")?;
+        let t = a + zi.to_digit(16).context("hash contains non-hex characters")? as usize;
 
-        let v = u32::from_str_radix(&z[t..t + 2], 16).unwrap();
+        let hex = z
+            .get(t..t + 2)
+            .context("hash has unexpected length for token derivation")?;
+        let v = u32::from_str_radix(hex, 16).context("hash contains non-hex characters")?;
         let digit = (v * m) & 0xf;
 
-        out.push(std::char::from_digit(digit, 16).unwrap());
+        let ch = std::char::from_digit(digit, 16).context("failed to format token digit")?;
+        out.push(ch);
     }
-    out
+    Ok(out)
 }
 
 #[cfg(test)]
@@ -46,7 +57,7 @@ mod tests {
 
     #[test]
     fn test_known_token() {
-        assert_eq!(compute_token("e17ef434e816db49e58b062b45e3e258"), "8c081");
-        assert_eq!(compute_token("4b3d32b7700b3588531dd81db058eba9"), "00640");
+        assert_eq!(compute_token("e17ef434e816db49e58b062b45e3e258").unwrap(), "8c081");
+        assert_eq!(compute_token("4b3d32b7700b3588531dd81db058eba9").unwrap(), "00640");
     }
 }

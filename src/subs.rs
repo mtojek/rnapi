@@ -4,7 +4,7 @@ use std::{
     path::PathBuf,
 };
 
-use anyhow::{Result, bail};
+use anyhow::{Context, Result, bail};
 use log::{debug, info};
 use sevenz_rust2::ArchiveReader;
 use subparse::{SrtFile, SubtitleFileInterface, SubtitleFormat, parse_str};
@@ -44,12 +44,10 @@ pub fn decompress(data: Vec<u8>) -> Result<Vec<u8>> {
     let mut archive = ArchiveReader::new(reader, PASSWORD.into())?;
 
     let mut decompressed = vec![];
-    archive
-        .for_each_entries(|_entry, reader| {
-            reader.read_to_end(&mut decompressed).unwrap();
-            Ok(true)
-        })
-        .unwrap();
+    archive.for_each_entries(|_entry, reader| {
+        reader.read_to_end(&mut decompressed)?;
+        Ok(true)
+    })?;
     Ok(decompressed)
 }
 
@@ -63,44 +61,51 @@ pub fn preview(data: &[u8]) {
         });
 }
 
-pub fn to_srt(content: &[u8], fps: f64) -> Vec<u8> {
-    let format = detect_subtitle_format(content).expect("unrecognized subtitle format");
+pub fn to_srt(content: &[u8], fps: f64) -> Result<Vec<u8>> {
+    let format = detect_subtitle_format(content)
+        .context("unrecognized subtitle format")?;
     info!("Subtitle extension detected: {:?}", format);
 
     if format == SubtitleFormat::SubRip {
         info!("Already a SubRip file");
-        return content.to_vec();
+        return Ok(content.to_vec());
     }
 
     debug!("Parse subtitles");
-    let subtitle_file =
-        parse_str(format, str::from_utf8(content).unwrap(), fps).expect("can't parse subtitles");
+    let text = std::str::from_utf8(content).context("subtitle content is not valid UTF-8")?;
+    let subtitle_file = parse_str(format, text, fps)
+        .map_err(|e| anyhow::anyhow!("can't parse subtitles: {e}"))?;
     let entries = subtitle_file
         .get_subtitle_entries()
-        .expect("can't read subtitle entries");
+        .map_err(|e| anyhow::anyhow!("can't read subtitle entries: {e}"))?;
 
     debug!("Serialize SubRip file");
     let lines = entries
         .into_iter()
         .map(|entry| (entry.timespan, entry.line.unwrap_or_default()))
         .collect();
-    let subrip = SrtFile::create(lines).expect("can't build SubRip file");
-    let serialized = subrip.to_data().expect("can't serialize SubRip file");
+    let subrip = SrtFile::create(lines)
+        .map_err(|e| anyhow::anyhow!("can't build SubRip file: {e}"))?;
+    let serialized = subrip
+        .to_data()
+        .map_err(|e| anyhow::anyhow!("can't serialize SubRip file: {e}"))?;
 
     info!("Converted to SubRip");
-    serialized
+    Ok(serialized)
 }
 
-pub fn write_out(movie_file: &PathBuf, content: &[u8]) {
+pub fn write_out(movie_file: &PathBuf, content: &[u8]) -> Result<PathBuf> {
     let mut sub_path = movie_file.clone();
     sub_path.set_extension("srt");
 
-    let mut subtitles_file = File::create(&sub_path).expect("can't create subtitles file");
+    let mut subtitles_file =
+        File::create(&sub_path).with_context(|| format!("can't create subtitles file: {:?}", sub_path))?;
     subtitles_file
         .write_all(content)
-        .expect("can't write subtitles file");
+        .with_context(|| format!("can't write subtitles file: {:?}", sub_path))?;
 
     info!("Subtitles file written: {}", sub_path.display());
+    Ok(sub_path)
 }
 
 fn detect_subtitle_format(content: &[u8]) -> Option<SubtitleFormat> {

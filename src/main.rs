@@ -33,7 +33,7 @@ fn run(args: &Args) -> Result<()> {
     let h = hash::compute_md5(&args.movie_file)?;
     debug!("movie file hash = {}", &h);
 
-    let t = hash::compute_token(&h);
+    let t = hash::compute_token(&h)?;
     debug!("token = {}", &t);
 
     let f = subs::download(&h, &t)?;
@@ -47,12 +47,12 @@ fn run(args: &Args) -> Result<()> {
     debug!("UTF-8 encoded:");
     subs::preview(&encoded);
 
-    let converted = subs::to_srt(&encoded, args.fps);
+    let converted = subs::to_srt(&encoded, args.fps)?;
 
     debug!("SubRip format:");
     subs::preview(&converted);
 
-    subs::write_out(&args.movie_file, &converted);
+    subs::write_out(&args.movie_file, &converted)?;
     Ok(())
 }
 
