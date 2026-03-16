@@ -6,7 +6,7 @@ use std::{
 use anyhow::{Result, bail};
 use log::debug;
 use sevenz_rust2::ArchiveReader;
-use subparse::{SrtFile, SubtitleFormat, get_subtitle_format, parse_str};
+use subparse::{SrtFile, SubtitleFileInterface, SubtitleFormat, get_subtitle_format, parse_str};
 use ureq::Error;
 
 pub fn download(checksum: &str, token: &str) -> Result<Vec<u8>> {
@@ -79,6 +79,10 @@ pub fn to_srt(content: &[u8], fps: f64) -> Vec<u8> {
         .expect("can't read subtitle entries");
 
     debug!("Write SubRip file");
-    let mut subrip = SrtFile::new();
-    // TODO
+    let lines = entries
+        .into_iter()
+        .map(|entry| (entry.timespan, entry.line.unwrap_or_default()))
+        .collect();
+    let subrip = SrtFile::create(lines).expect("can't build SubRip file");
+    subrip.to_data().expect("can't serialize SubRip file")
 }
