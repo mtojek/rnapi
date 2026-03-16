@@ -1,12 +1,9 @@
-use std::{
-    ffi::OsStr,
-    io::{BufReader, Cursor},
-};
+use std::io::{BufReader, Cursor};
 
 use anyhow::{Result, bail};
 use log::debug;
 use sevenz_rust2::ArchiveReader;
-use subparse::{SrtFile, SubtitleFileInterface, SubtitleFormat, get_subtitle_format, parse_str};
+use subparse::{SrtFile, SubtitleFileInterface, SubtitleFormat, parse_str};
 use ureq::Error;
 
 pub fn download(checksum: &str, token: &str) -> Result<Vec<u8>> {
@@ -63,8 +60,7 @@ pub fn preview(data: &[u8]) {
 }
 
 pub fn to_srt(content: &[u8], fps: f64) -> Vec<u8> {
-    let format = get_subtitle_format(Some(OsStr::new("sub")), content) // FIXME sub
-        .expect("unrecognized subtitle format");
+    let format = detect_subtitle_format(content).expect("unrecognized subtitle format");
     debug!("Subtitle extension detected: {:?}", format);
 
     if format == SubtitleFormat::SubRip {
@@ -85,4 +81,56 @@ pub fn to_srt(content: &[u8], fps: f64) -> Vec<u8> {
         .collect();
     let subrip = SrtFile::create(lines).expect("can't build SubRip file");
     subrip.to_data().expect("can't serialize SubRip file")
+}
+
+fn detect_subtitle_format(content: &[u8]) -> Option<SubtitleFormat> {
+    let text = match std::str::from_utf8(content) {
+        Ok(s) => s,
+        Err(_) => return None,
+    };
+
+    if looks_like_srt(text) {
+        return Some(SubtitleFormat::SubRip);
+    }
+    if looks_like_ass(text) {
+        return Some(SubtitleFormat::SubStationAlpha);
+    }
+    if looks_like_idx(text) {
+        return Some(SubtitleFormat::VobSubIdx);
+    }
+    if looks_like_microdvd(text) {
+        return Some(SubtitleFormat::MicroDVD);
+    }
+    None
+}
+
+fn looks_like_srt(text: &str) -> bool {
+    text.lines()
+        .any(|line| line.contains(" --> ") && line.contains(','))
+}
+
+fn looks_like_ass(text: &str) -> bool {
+    text.contains("[Script Info]") || text.lines().any(|line| line.starts_with("Dialogue:"))
+}
+
+fn looks_like_idx(text: &str) -> bool {
+    text.lines()
+        .any(|line| line.contains("timestamp:") && line.contains("filepos:"))
+        || text
+            .lines()
+            .any(|line| line.starts_with("VobSub index file"))
+        || text.lines().any(|line| line.starts_with("id: "))
+}
+
+fn looks_like_microdvd(text: &str) -> bool {
+    text.lines().any(|line| {
+        let line = line.trim_start();
+        line.starts_with('{')
+            && line.contains("}{")
+            && line
+                .chars()
+                .take_while(|c| *c != '}')
+                .skip(1)
+                .all(|c| c.is_ascii_digit())
+    })
 }

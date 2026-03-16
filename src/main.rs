@@ -52,7 +52,6 @@ fn run(args: &Args) -> Result<()> {
     debug!("Preview converted:");
     subs::preview(&converted);
 
-    // TODO Convert to SRT
     // TODO Write to file
 
     Ok(())
