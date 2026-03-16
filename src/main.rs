@@ -11,7 +11,12 @@ mod subs;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    #[arg(short, long, default_value_t = 23.976)]
+    #[arg(
+        short,
+        long,
+        default_value_t = 23.976,
+        value_parser = parse_fps
+    )]
     fps: f64,
 
     movie_file: PathBuf,
@@ -31,12 +36,12 @@ fn run(args: &Args) -> Result<()> {
     validate(&args)?;
 
     let h = hash::compute_md5(&args.movie_file)?;
-    debug!("movie file hash = {}", &h);
+    debug!("movie file hash = {}", h.as_str());
 
     let t = hash::compute_token(&h)?;
     debug!("token = {}", &t);
 
-    let f = subs::download(&h, &t)?;
+    let f = subs::download(h.as_str(), &t)?;
     debug!("subtitle archive size = {}", f.len());
 
     let s = subs::decompress(f)?;
@@ -57,14 +62,20 @@ fn run(args: &Args) -> Result<()> {
 }
 
 fn validate(args: &Args) -> Result<()> {
-    if args.fps <= 0.0 {
-        bail!("fps must be greater than 0");
-    }
-
     if !args.movie_file.exists() {
         bail!("movie file does not exist");
     }
 
     debug!("Validation passed");
     Ok(())
+}
+
+fn parse_fps(s: &str) -> std::result::Result<f64, String> {
+    let fps: f64 = s
+        .parse()
+        .map_err(|_| "fps must be a valid number".to_string())?;
+    if fps <= 0.0 {
+        return Err("fps must be greater than 0".to_string());
+    }
+    Ok(fps)
 }
