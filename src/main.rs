@@ -52,8 +52,7 @@ fn run(args: &Args) -> Result<()> {
     debug!("SubRip format:");
     subs::preview(&converted);
 
-    // TODO Write to file
-
+    subs::write_out(&args.movie_file, &converted);
     Ok(())
 }
 

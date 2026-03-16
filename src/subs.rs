@@ -1,4 +1,8 @@
-use std::io::{BufReader, Cursor};
+use std::{
+    fs::File,
+    io::{BufReader, Cursor, Write},
+    path::PathBuf,
+};
 
 use anyhow::{Result, bail};
 use log::{debug, info};
@@ -85,6 +89,18 @@ pub fn to_srt(content: &[u8], fps: f64) -> Vec<u8> {
 
     info!("Converted to SubRip");
     serialized
+}
+
+pub fn write_out(movie_file: &PathBuf, content: &[u8]) {
+    let mut sub_path = movie_file.clone();
+    sub_path.set_extension("srt");
+
+    let mut subtitles_file = File::create(&sub_path).expect("can't create subtitles file");
+    subtitles_file
+        .write_all(content)
+        .expect("can't write subtitles file");
+
+    info!("Subtitles file written: {}", sub_path.display());
 }
 
 fn detect_subtitle_format(content: &[u8]) -> Option<SubtitleFormat> {
