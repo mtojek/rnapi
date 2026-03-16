@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use log::{debug, info};
+use log::{debug, info, warn};
 use subparse::{
     SrtFile,
     SubtitleFileInterface,
@@ -11,6 +11,7 @@ use subparse::{
 pub fn to_srt(content: &[u8], fps: f64) -> Result<Vec<u8>> {
     let text = std::str::from_utf8(content).context("subtitle content is not valid UTF-8")?;
     if looks_like_mpl2(text) {
+        warn!("Detected MPL2 format ([start][end]). Interpreting times as 0.1s units (fps not used).");
         return parse_mpl2_to_srt(text);
     }
 

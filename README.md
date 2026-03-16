@@ -44,7 +44,8 @@ RUST_LOG=debug cargo run -- /path/to/movie.mkv
 ## Notes / Limitations
 
 - Subtitle encoding is currently assumed to be Windows-1250 and is converted to UTF-8.
-- Format detection is based on content heuristics and supports SubRip, ASS/SSA, MicroDVD, and VobSub IDX text formats.
+- Format detection is based on content heuristics and supports SubRip, ASS/SSA, MicroDVD, MPL2 (`[start][end]`), and VobSub IDX text formats.
+- MPL2 timestamps are interpreted as 0.1s units (fps is not used).
 - If multiple files are present in the downloaded archive, all entries are currently concatenated during decompression.
 
 ## License
